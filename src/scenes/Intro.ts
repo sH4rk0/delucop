@@ -25,6 +25,11 @@ export default class Intro extends Phaser.Scene {
     this._highscores = leaderboard.getHighscores();
     this._status = 0;
 
+    this.add
+      .tileSprite(0, 0, 1280, 800, "sky")
+      .setScale(4)
+      .setOrigin(0);
+
     this._bg = this.add
       .tileSprite(0, 0, 1280, 800, "bg")
       .setScale(4)
@@ -79,6 +84,7 @@ export default class Intro extends Phaser.Scene {
       this.scene.start("Hud");
       this.scene.bringToTop("Game");
       this.scene.bringToTop("Hud");
+      this._music.stop();
     });
 
     this._music = this.sound.add("intro");

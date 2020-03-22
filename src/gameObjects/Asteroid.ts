@@ -78,11 +78,11 @@ export default class Asteroid extends Phaser.Physics.Arcade.Sprite {
     this.y = _startY;
 
     this._score = this._config.options.speed * 10;
-    this._gameplay.physics.moveToObject(
+    /*this._gameplay.physics.moveToObject(
       this,
       this._gameplay.earth(),
       this._config.options.speed
-    );
+    );*/
     this._gameplay._asteroidGroup.add(this);
     this._gameplay.add.existing(this);
   }

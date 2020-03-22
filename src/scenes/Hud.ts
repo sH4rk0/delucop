@@ -27,8 +27,9 @@ export default class HUD extends Phaser.Scene {
   private _rocketSelector: number;
   private _updateScore: Phaser.Events.EventEmitter;
 
-  private _wave: Phaser.GameObjects.BitmapText;
-  private _waveTitle: Phaser.GameObjects.BitmapText;
+  private _wave: Phaser.GameObjects.Text;
+  private _waveTitle: Phaser.GameObjects.Text;
+
   private _completedText: Phaser.GameObjects.BitmapText;
   private _completedSummary: Phaser.GameObjects.BitmapText;
 
@@ -186,46 +187,59 @@ export default class HUD extends Phaser.Scene {
 
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       if (this._levelStarted && !this._levelCompleted) {
-        this._rockets += 1;
-        switch (this._rocketSelector) {
-          case 0:
-            if (this.isLaucherReady(0)) {
-              this.disableLauncher(0);
-              this._gamePlay.launchMissile(pointer);
-            }
-            break;
+        if (this._rocketSelector == 2) {
+          if (this.isLaucherReady(2)) {
+            this.disableLauncher(2);
+            this._gamePlay.flameThrower();
+          }
+        } else {
+          let _angle = Phaser.Math.Angle.BetweenPoints(
+            this._gamePlay.arm(),
+            this._gamePlay.recalculatePointer(pointer)
+          );
 
-          case 1:
-            if (this.isLaucherReady(1)) {
-              this.disableLauncher(1);
-              this._gamePlay.launchPerforant(pointer);
-            }
-            break;
+          if (_angle < -1.3) _angle = -1.3;
+          if (_angle > 0.8) _angle = 0.8;
 
-          case 2:
-            if (this.isLaucherReady(2)) {
-              this.disableLauncher(2);
-              this._gamePlay.launchShockwave(pointer);
-            }
+          this._gamePlay.arm().setRotation(_angle);
+          this._rockets += 1;
 
-            break;
+          switch (this._rocketSelector) {
+            case 0:
+              if (this.isLaucherReady(0)) {
+                this.disableLauncher(0);
+                this._gamePlay.launchMissile(pointer);
+              }
+              break;
+
+            case 1:
+              if (this.isLaucherReady(1)) {
+                this.disableLauncher(1);
+                this._gamePlay.launchPerforant(pointer);
+              }
+              break;
+          }
         }
       }
     });
 
     this._wave = this.add
-      .bitmapText(640, 200, "arcade", "")
+      .text(640, 200, "", {})
       .setTint(0xff8200)
       .setOrigin(0.5)
       .setAlpha(0)
+      .setStroke("#000000", 10)
+      .setFontFamily('"Press Start 2P"')
       .setFontSize(60);
 
     this._waveTitle = this.add
-      .bitmapText(640, 260, "carrier", "")
+      .text(640, 270, "")
       .setTint(0x00ff00)
       .setOrigin(0.5)
       .setAlpha(0)
-      .setFontSize(20);
+      .setStroke("#000000", 3)
+      .setFontFamily('"Press Start 2P"')
+      .setFontSize(30);
 
     this._completedText = this.add
       .bitmapText(640, 200, "arcade", "LEVEL COMPLETED")
@@ -246,7 +260,16 @@ export default class HUD extends Phaser.Scene {
 
   disableLauncher(index: number): void {
     this._launchers[index] = false;
-    let _delay: number = 1000;
+    let _delay: number = 200;
+    switch (index) {
+      case 1:
+        _delay = 500;
+        break;
+      case 2:
+        _delay = 1000;
+        break;
+    }
+
     this.time.addEvent({
       delay: _delay,
       callback: () => {
@@ -263,20 +286,34 @@ export default class HUD extends Phaser.Scene {
   }
 
   setRocket(index: number): void {
+    if (index == this._rocketSelector) return;
+    this.sound.add("charge").play({ volume: 1 });
+
     switch (index) {
       case 0:
         this._rocketSelector = 0;
+        this._gamePlay.arm().setFrame(0);
         this._cursor.setX(1040);
+        this._gamePlay.setArmMove(true);
+        this._gamePlay.flameTowerStatus(false);
         break;
 
       case 1:
         this._rocketSelector = 1;
+        this._gamePlay.arm().setFrame(1);
         this._cursor.setX(1120);
+        this._gamePlay.setArmMove(true);
+        this._gamePlay.flameTowerStatus(false);
         break;
 
       case 2:
         this._rocketSelector = 2;
+        this._gamePlay.arm().setFrame(2);
         this._cursor.setX(1200);
+        this._gamePlay.setArmMove(false);
+        this._gamePlay.arm().setRotation(0);
+        this._gamePlay.flameTowerStatus(true);
+
         break;
     }
   }
@@ -307,13 +344,14 @@ export default class HUD extends Phaser.Scene {
 
               this._asteroids += 1;
               //console.log(this._asteroids, this._asteroidsMax);
-              if (this._asteroids <= this._asteroidsMax)
-                this._gamePlay.createAsteroid({
+              if (this._asteroids <= this._asteroidsMax) {
+                /*this._gamePlay.createAsteroid({
                   speed: Phaser.Math.RND.integerInRange(
                     this._speedMin,
                     this._speedMax
                   )
-                });
+                });*/
+              }
             }
           }
 
@@ -326,6 +364,7 @@ export default class HUD extends Phaser.Scene {
   }
 
   private setUpLevel() {
+    this._levelStarted = true;
     console.log("setUpLevel", this._currentLevelIndex);
     this._currentLevel = this._levels[this._currentLevelIndex];
     this._hits = 0;
@@ -387,6 +426,7 @@ export default class HUD extends Phaser.Scene {
               onComplete: () => {
                 console.log("start level");
                 this._levelStarted = true;
+                this._gamePlay.startGame();
               }
             });
           }
