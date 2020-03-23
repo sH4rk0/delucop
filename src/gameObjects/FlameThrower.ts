@@ -57,7 +57,7 @@ export default class FlameThrower extends Phaser.Physics.Arcade.Sprite {
       x: 35,
       y: 0
     });
-
+    this._launchSound = this._config.scene.sound.add("fire");
     this._emitter.startFollow(this);
     this.disable();
   }
@@ -73,6 +73,7 @@ export default class FlameThrower extends Phaser.Physics.Arcade.Sprite {
     this._emitter.stop();
     this.body.setSize(0, 0, true).setOffset(0, 0);
     this.body.checkCollision.none = true;
+    this._launchSound.stop();
   }
   enable() {
     this._isActive = true;
@@ -80,6 +81,7 @@ export default class FlameThrower extends Phaser.Physics.Arcade.Sprite {
     this._emitter.start();
     this.body.setSize(200, 50, true).setOffset(20, -25);
     this.body.checkCollision.right = true;
+    this._launchSound.play({ volume: 0.5, loop: true });
   }
 
   remove() {

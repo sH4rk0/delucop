@@ -60,8 +60,8 @@ export let GameData: any = {
       name: "arm",
       path: "assets/images/game/player/arm.png",
       width: 156,
-      height: 60,
-      frames: 2
+      height: 64,
+      frames: 3
     },
     {
       name: "shockwave",
@@ -83,56 +83,7 @@ export let GameData: any = {
       width: 176,
       height: 400,
       frames: 10
-    } /*
-    {
-      name: "asteroid-0",
-      path: "assets/images/game/asteroid-0.png",
-      width: 80,
-      height: 80,
-      frames: 12
-    },
-    {
-      name: "asteroid-1",
-      path: "assets/images/game/asteroid-1.png",
-      width: 80,
-      height: 80,
-      frames: 12
-    },
-    {
-      name: "asteroid-2",
-      path: "assets/images/game/asteroid-2.png",
-      width: 100,
-      height: 100,
-      frames: 15
-    },
-    {
-      name: "asteroid-3",
-      path: "assets/images/game/asteroid-3.png",
-      width: 70,
-      height: 70,
-      frames: 13
-    },
-    {
-      name: "shockwave",
-      path: "assets/images/game/shockwave.png",
-      width: 192,
-      height: 192,
-      frames: 25
-    },
-    {
-      name: "asteroid-emitter",
-      path: "assets/images/game/asteroid-emitter.png",
-      width: 128,
-      height: 128,
-      frames: 6
-    },
-    {
-      name: "missile",
-      path: "assets/images/game/missile.png",
-      width: 30,
-      height: 30,
-      frames: 3
-    }*/
+    }
   ],
 
   atlas: [],
