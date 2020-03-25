@@ -1,72 +1,121 @@
 import Game from "../scenes/Game";
 export default class Explosion extends Phaser.GameObjects.Sprite {
-  private _config: ExplosionConfig;
-  constructor(params: ExplosionConfig) {
+  private _config: any;
+  private _animation: any = [
+    {
+      key: "blood",
+      frames: [0, 1, 2, 3, 4, 5, 6, 7],
+      frameRate: 15,
+      scale: 2,
+      sound: "",
+      offsetY: 0,
+      offsetX: 0
+    },
+    {
+      key: "explosion",
+      frames: [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27
+      ],
+      frameRate: 20,
+      scale: 2,
+      sound: "",
+      offsetY: 40,
+      offsetX: 0
+    },
+    ,
+    {
+      key: "fireman",
+      frames: [
+        21,
+        20,
+        19,
+        18,
+        17,
+        16,
+        15,
+        14,
+        13,
+        12,
+        11,
+        10,
+        9,
+        8,
+        7,
+        6,
+        5,
+        4,
+        3,
+        2,
+        1,
+        0
+      ],
+      frameRate: 10,
+      scale: 3,
+      sound: "",
+      offsetY: 30,
+      offsetX: 0
+    }
+  ];
+  constructor(params: any) {
     super(params.scene, params.x, params.y, params.key);
     this._config = params;
     this.create();
   }
 
   create() {
-    this.setDepth(10).setAlpha(0.5);
-
     let _scene: Game = <Game>this._config.scene;
 
-    this.setRotation(Phaser.Math.RND.realInRange(0, 5));
-
-    if (
-      this._config.options != undefined &&
-      this._config.options.scale != undefined
-    )
-      this.setScale(this._config.options.scale);
+    let _options: any = this._animation[this._config.options.type];
+    this.setTexture(_options.key)
+      .setScale(_options.scale)
+      .setDepth(100)
+      .setY(this.y + _options.offsetY)
+      .setX(this.x + _options.offsetX);
 
     var animConfig = {
-      key: "explode",
-      frames: _scene.anims.generateFrameNumbers(this._config.key, {
-        frames: [
-          0,
-          1,
-          2,
-          3,
-          4,
-          5,
-          6,
-          7,
-          8,
-          9,
-          10,
-          11,
-          12,
-          13,
-          14,
-          15,
-          16,
-          17,
-          18,
-          19,
-          20,
-          21,
-          22,
-          23,
-          24
-        ]
+      key: "explode" + this._config.options.type,
+      frames: _scene.anims.generateFrameNumbers(_options.key, {
+        frames: _options.frames
       }),
-      frameRate: 10,
+      frameRate: _options.frameRate,
       repeat: 0
     };
 
     _scene.anims.create(animConfig);
 
-    if (
-      this._config.options != undefined &&
-      this._config.options.nosound != undefined &&
-      this._config.options.nosound == false
-    ) {
-      let sound: Phaser.Sound.BaseSound = this.scene.sound.add("explosion");
+    if (_options.sound != "") {
+      let sound: Phaser.Sound.BaseSound = this.scene.sound.add(_options.sound);
       sound.play({ volume: 0.1 });
     }
 
-    this.play("explode");
+    this.play("explode" + this._config.options.type);
     _scene.add.existing(this);
 
     this.on(
@@ -77,6 +126,4 @@ export default class Explosion extends Phaser.GameObjects.Sprite {
       this
     );
   }
-
-  // update(time: number, delta: number): void {}
 }

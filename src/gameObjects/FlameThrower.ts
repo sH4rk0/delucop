@@ -80,7 +80,10 @@ export default class FlameThrower extends Phaser.Physics.Arcade.Sprite {
     console.log("enable");
     this._emitter.start();
     this.body.setSize(200, 50, true).setOffset(20, -25);
+    this.body.checkCollision.none = false;
     this.body.checkCollision.right = true;
+    this.body.checkCollision.up = true;
+    this.body.checkCollision.down = true;
     this._launchSound.play({ volume: 0.5, loop: true });
   }
 

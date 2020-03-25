@@ -57,6 +57,41 @@ export let GameData: any = {
       spacing: 0
     },
     {
+      name: "enemy-1",
+      path: "assets/images/game/npg/sprite-1.png",
+      width: 30,
+      height: 44,
+      frames: 16
+    },
+    {
+      name: "blood",
+      path: "assets/images/game/explosions/blood.png",
+      width: 126,
+      height: 126,
+      frames: 8
+    },
+    {
+      name: "explosion",
+      path: "assets/images/game/explosions/explosion.png",
+      width: 80,
+      height: 80,
+      frames: 28
+    },
+    {
+      name: "bodyparts",
+      path: "assets/images/game/explosions/bodyparts.png",
+      width: 26,
+      height: 18,
+      frames: 4
+    },
+    {
+      name: "fireman",
+      path: "assets/images/game/explosions/fireman.png",
+      width: 45,
+      height: 64,
+      frames: 22
+    },
+    {
       name: "arm",
       path: "assets/images/game/player/arm.png",
       width: 156,
@@ -92,10 +127,6 @@ export let GameData: any = {
     {
       name: "bg1",
       path: "assets/images/game/bg/bg1.png"
-    },
-    {
-      name: "level0",
-      path: "assets/images/game/bg/level0.png"
     },
     {
       name: "rub",
@@ -141,6 +172,12 @@ export let GameData: any = {
     {
       name: "intro",
       paths: ["assets/sounds/intro.ogg", "assets/sounds/intro.m4a"],
+      volume: 1,
+      loop: false
+    },
+    {
+      name: "explosion",
+      paths: ["assets/sounds/explosion.ogg", "assets/sounds/explosion.m4a"],
       volume: 1,
       loop: false
     },

@@ -79,12 +79,24 @@ export default class Intro extends Phaser.Scene {
       .setFontSize(30);
 
     this.input.once("pointerdown", () => {
-      this.scene.stop("Intro");
-      this.scene.start("Game");
-      this.scene.start("Hud");
-      this.scene.bringToTop("Game");
-      this.scene.bringToTop("Hud");
-      this._music.stop();
+      this.sound.add("shot").play({ volume: 0.5 });
+      this.cameras.main.flash(
+        1000,
+        255,
+        255,
+        255,
+        true,
+        (camera: any, progress: number) => {
+          if (progress == 1) {
+            this.scene.stop("Intro");
+            this.scene.start("Game");
+            this.scene.start("Hud");
+            this.scene.bringToTop("Game");
+            this.scene.bringToTop("Hud");
+            this._music.stop();
+          }
+        }
+      );
     });
 
     this._music = this.sound.add("intro");

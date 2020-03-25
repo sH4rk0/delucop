@@ -1,5 +1,5 @@
 import MissileShockwave from "../gameObjects/MissileShockwave";
-import MissileSimple from "../gameObjects/MissileSimple";
+import EnemyGeneric from "../gameObjects/EnemyGeneric";
 import FlameThrower from "../gameObjects/FlameThrower";
 import DeluCop from "../gameObjects/DeluCop";
 import DelucopArm from "../gameObjects/DeluCopArm";
@@ -9,18 +9,16 @@ export default class Game extends Phaser.Scene {
   public _asteroidGroup: Phaser.GameObjects.Group;
   public _missileGroup: Phaser.GameObjects.Group;
   public _playerGroup: Phaser.GameObjects.Group;
-  private _bg0: Phaser.GameObjects.TileSprite;
+  public _enemyGroup: Phaser.GameObjects.Group;
+
   private _bg: Phaser.GameObjects.TileSprite;
-  private _level0: Phaser.GameObjects.TileSprite;
   private _music: Phaser.Sound.BaseSound;
-  private _walk: Phaser.Sound.BaseSound;
   private _flame: FlameThrower;
   private _delucop: DeluCop;
   private _delucopArm: DelucopArm;
-  public map: Phaser.Tilemaps.Tilemap;
+  private map: Phaser.Tilemaps.Tilemap;
   private tileset: Phaser.Tilemaps.Tileset;
-  public layer: Phaser.Tilemaps.StaticTilemapLayer;
-
+  private layer: Phaser.Tilemaps.StaticTilemapLayer;
   private _started: boolean;
 
   private _isGameOver: boolean = false;
@@ -49,7 +47,7 @@ export default class Game extends Phaser.Scene {
       .setOrigin(0)
       .setScrollFactor(0);
 
-    this._bg0 = this.add
+    this._bg = this.add
       .tileSprite(0, -100, 1280, 800, "bg")
       .setScale(4)
       .setOrigin(0)
@@ -167,12 +165,71 @@ export default class Game extends Phaser.Scene {
       key: "empty"
     });
 
+    this.setUpEnemies();
+
+    this.physics.add.overlap(
+      this._flame,
+      this._enemyGroup,
+      this.fireCollide,
+      undefined,
+      this
+    );
+
     this._playerGroup.add(this._delucopArm);
     this._playerGroup.add(this._delucop);
 
     this.cameras.main.startFollow(this._delucop, true, 1, 1, -600);
 
     this.cameras.main.fadeIn();
+  }
+
+  setUpEnemies(): void {
+    this._enemyGroup = this.add.group({ runChildUpdate: true });
+    const enemiesObject = this.map.getObjectLayer("enemies").objects as any[];
+
+    console.log(enemiesObject);
+    enemiesObject.forEach((enemy: any) => {
+      switch (enemy.type) {
+        case "simple":
+          this._enemyGroup.add(
+            new EnemyGeneric({
+              scene: this,
+              key: "enemy-1",
+              x: enemy.x * 3.5,
+              y: enemy.y * 3.5,
+              frame: null,
+              name: enemy.type,
+              offsetX: 0,
+              offsetY: 0
+            })
+          );
+          break;
+
+        case "enemy2":
+          break;
+      }
+    });
+
+    this.physics.add.collider(
+      this._missileGroup,
+      this._enemyGroup,
+      this.shotCollide,
+      undefined,
+      this
+    );
+  }
+
+  shotCollide(_obj1: any, _obj2: any): void {
+    console.log("collide enemy shot");
+
+    _obj2.kill(_obj1.name);
+    _obj1.destroy();
+  }
+
+  fireCollide(_obj1: any, _obj2: any): void {
+    console.log("collide fire shot");
+
+    _obj2.kill("fire");
   }
 
   recalculatePointer(pointer: Phaser.Input.Pointer): Phaser.Geom.Point {

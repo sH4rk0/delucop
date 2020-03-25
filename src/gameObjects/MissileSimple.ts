@@ -12,6 +12,7 @@ export default class MissileSimple extends Phaser.Physics.Arcade.Sprite {
     this.create();
   }
   create(): void {
+    this.name = "simple";
     this._isPerforant = false;
     let _scene: Game = <Game>this._config.scene;
     _scene.physics.world.enable(this);
@@ -46,7 +47,7 @@ export default class MissileSimple extends Phaser.Physics.Arcade.Sprite {
       .setCircle(7.5, 7.5, 7.5);
 
     _scene.physics.velocityFromRotation(
-      this._config.options.angle,
+      this._config.options.angle + Phaser.Math.RND.realInRange(-0.1, 0.1),
       100 * this._config.options.speed,
       this.body.velocity
     );

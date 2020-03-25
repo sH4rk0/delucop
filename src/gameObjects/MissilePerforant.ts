@@ -5,6 +5,7 @@ export default class MissilePerforant extends Phaser.Physics.Arcade.Sprite {
   private _emitter: Phaser.GameObjects.Particles.ParticleEmitter;
   private _launchSound: Phaser.Sound.BaseSound;
   private _isPerforant: boolean;
+  private _type: number;
 
   constructor(params: MissileSimpleConfig) {
     super(params.scene, params.x, params.y, params.key);
@@ -12,6 +13,7 @@ export default class MissilePerforant extends Phaser.Physics.Arcade.Sprite {
     this.create();
   }
   create(): void {
+    this.name = "explosive";
     this._isPerforant = true;
     let _scene: Game = <Game>this._config.scene;
     _scene.physics.world.enable(this);
@@ -44,7 +46,7 @@ export default class MissilePerforant extends Phaser.Physics.Arcade.Sprite {
       .setCircle(7.5, 7.5, 7.5);
 
     _scene.physics.velocityFromRotation(
-      this._config.options.angle,
+      this._config.options.angle + Phaser.Math.RND.realInRange(-0.025, 0.025),
       100 * this._config.options.speed,
       this.body.velocity
     );
