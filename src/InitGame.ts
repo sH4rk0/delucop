@@ -14,21 +14,21 @@ window.addEventListener("load", () => {
 
   const config: any = {
     type: Phaser.WEBGL,
-    backgroundColor: "#000000",
+    backgroundColor: "#ffffff",
     parent: "my-game",
     scale: {
       mode: Phaser.Scale.FIT,
       width: 1280,
-      height: 800
+      height: 800,
     },
     scene: [Boot, Preloader, Intro, Game, Hud, GameOver, ScoreInput],
     render: { pixelArt: true, antialias: false },
     physics: {
       default: "arcade",
       arcade: {
-        debug: false
-      }
-    }
+        debug: false,
+      },
+    },
   };
 
   const game = new Phaser.Game(config);

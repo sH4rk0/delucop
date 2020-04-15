@@ -1,31 +1,59 @@
-interface AsteroidConfig {
+interface enemyGenericConfig {
   scene: Phaser.Scene;
   x: number;
   y: number;
   key: string;
-  options: AsteroidConfigOptions;
-}
-
-interface AsteroidConfigOptions {
-  speed: number;
+  frame: null;
+  name: string;
+  offsetX: number;
+  offsetY: number;
+  score: number;
 }
 
 interface level {
   level: string;
   title: string;
   type: number;
-  time?: number;
-  asteroids?: {
-    quantity: number;
-    spawn?: { min: number; max: number };
-    speed?: { min: number; max: number };
+  bg: {
+    key: string;
+    scale: number;
+    scroll: number;
+    x: number;
+    y: number;
+    visible: boolean;
   };
+  sky: string;
+  map: string;
 }
 
 interface ScoreConfig {
   name: string;
   score: number;
+  level: number;
   date?: number;
+}
+
+interface ActionConfig {
+  scene: Phaser.Scene;
+  x: number;
+  y: number;
+  key: string;
+  action: any;
+}
+
+interface BonusConfig {
+  scene: Phaser.Scene;
+  x: number;
+  y: number;
+  key: string;
+  bonus: any;
+}
+
+interface levelStatus {
+  score: number;
+  energy: number;
+  granade: number;
+  fire: number;
 }
 
 interface MissileSimpleConfig {
@@ -58,14 +86,6 @@ interface ShockwaveConfig {
   y: number;
   key: string;
   options: any;
-}
-
-interface EarthConfig {
-  scene: Phaser.Scene;
-  x: number;
-  y: number;
-  key: string;
-  options?: any;
 }
 
 interface genericConfig {

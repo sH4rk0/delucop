@@ -6,7 +6,7 @@ export default class GameOver extends Phaser.Scene {
   _scanlines: Phaser.GameObjects.TileSprite;
   constructor() {
     super({
-      key: "GameOver"
+      key: "GameOver",
     });
   }
 
@@ -54,7 +54,8 @@ export default class GameOver extends Phaser.Scene {
 
     leaderboard.insertScore({
       score: this.registry.get("score"),
-      name: name
+      name: name,
+      level: 0,
     });
     this.registry.set("score", 0);
 

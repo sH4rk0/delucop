@@ -2,10 +2,11 @@ import Game from "../scenes/Game";
 
 export default class MissilePerforant extends Phaser.Physics.Arcade.Sprite {
   private _config: MissileSimpleConfig;
-  private _emitter: Phaser.GameObjects.Particles.ParticleEmitter;
   private _launchSound: Phaser.Sound.BaseSound;
   private _isPerforant: boolean;
-  private _type: number;
+  private _particles: Phaser.GameObjects.Particles.ParticleEmitterManager;
+  private _collide: boolean;
+  private _pointer: Phaser.Input.Pointer;
 
   constructor(params: MissileSimpleConfig) {
     super(params.scene, params.x, params.y, params.key);
@@ -14,6 +15,9 @@ export default class MissilePerforant extends Phaser.Physics.Arcade.Sprite {
   }
   create(): void {
     this.name = "explosive";
+    this._collide = false;
+
+    this._pointer = this._config.options.pointer;
     this._isPerforant = true;
     let _scene: Game = <Game>this._config.scene;
     _scene.physics.world.enable(this);
@@ -21,7 +25,7 @@ export default class MissilePerforant extends Phaser.Physics.Arcade.Sprite {
     this._launchSound = _scene.sound.add("shot2");
     this._launchSound.play({ volume: 0.1 });
 
-    let graphics = this._config.scene.add.graphics({
+    /*  let graphics = this._config.scene.add.graphics({
       lineStyle: { width: 2, color: 0x00ff00 },
       fillStyle: { color: 0xff0000 }
     });
@@ -36,6 +40,30 @@ export default class MissilePerforant extends Phaser.Physics.Arcade.Sprite {
 
     this.x = CircumferencePoint.x;
     this.y = CircumferencePoint.y;
+*/
+    this._particles = this._config.scene.add
+      .particles("explosionParticles")
+      .setDepth(100000);
+    this._particles.createEmitter({
+      frame: ["smoke-puff", "cloud", "smoke-puff"],
+      angle: { min: 240, max: 300 },
+      speed: { min: 20, max: 30 },
+      quantity: 6,
+      lifespan: 2000,
+      alpha: { start: 1, end: 0 },
+      scale: { start: 0.1, end: 0 },
+      on: false,
+    });
+
+    this._particles.createEmitter({
+      frame: "muzzleflash2",
+      lifespan: 200,
+      scale: { start: 0.5, end: 0 },
+      rotate: { start: 0, end: 180 },
+      on: false,
+    });
+
+    this._particles.emitParticleAt(this.x, this.y);
 
     this.enableBody(true, this.x, this.y, true, true);
 
@@ -64,7 +92,14 @@ export default class MissilePerforant extends Phaser.Physics.Arcade.Sprite {
     */
   }
 
+  getCollide(): boolean {
+    return this._collide;
+  }
+
   update(time: number, delta: number): void {
+    if (this.x >= this._pointer.x + this._config.scene.cameras.main.scrollX) {
+      this._collide = true;
+    }
     if (
       this.x > 1280 + this._config.scene.cameras.main.scrollX ||
       this.y < 0 ||
@@ -78,7 +113,7 @@ export default class MissilePerforant extends Phaser.Physics.Arcade.Sprite {
   }
 
   remove() {
-    console.log("remove");
+    //console.log("remove");
     //this._emitter.stop();
     this.destroy();
     //this._launchSound.destroy();

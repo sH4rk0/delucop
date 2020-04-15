@@ -2,30 +2,24 @@ import Game from "../scenes/Game";
 import { GameData } from "../GameData";
 
 export default class HUD extends Phaser.Scene {
-  private livesGroup: Phaser.GameObjects.Group;
   private _isPaused: boolean = false;
   private _levels: Array<level>;
   private _currentLevel: level;
   private _currentLevelIndex: number;
   private _gamePlay: Game;
-
+  private _music: Phaser.Sound.BaseSound;
   private _levelCompleted: boolean;
   private _levelStarted: boolean;
   private _scoreText: Phaser.GameObjects.BitmapText;
   private _scoreValue: number;
-  private _spawn: number;
+
   private _hits: number;
-  private _asteroids: number;
-  private _asteroidsMax: number;
-  private _rockets: number;
-
-  private _spawnMin: number;
-  private _spawnMax: number;
-  private _speedMin: number;
-  private _speedMax: number;
-
   private _rocketSelector: number;
   private _updateScore: Phaser.Events.EventEmitter;
+  private _levelComplete: Phaser.Events.EventEmitter;
+  private _addGranade: Phaser.Events.EventEmitter;
+  private _addFlame: Phaser.Events.EventEmitter;
+  private _addEnergy: Phaser.Events.EventEmitter;
 
   private _wave: Phaser.GameObjects.Text;
   private _waveTitle: Phaser.GameObjects.Text;
@@ -36,18 +30,79 @@ export default class HUD extends Phaser.Scene {
   private _cursor: Phaser.GameObjects.Image;
   private _launchers: Array<boolean>;
 
+  private _continue: Phaser.GameObjects.BitmapText;
+  private _retry: Phaser.GameObjects.BitmapText;
+
+  private _energy: number;
+  private _energyhud: Phaser.GameObjects.Image;
+  private _energybar: Phaser.GameObjects.Image;
+  private _energybarmask: Phaser.GameObjects.Image;
+
+  private _levelCompleteContainer: Phaser.GameObjects.Container;
+  private _levelPauseContainer: Phaser.GameObjects.Container;
+
+  private _granadeQuantity: number;
+  private _granadeQuantityText: Phaser.GameObjects.Text;
+  private _flameQuantity: number;
+  private _flameQuantityText: Phaser.GameObjects.Text;
+  private _flametimer: Phaser.Time.TimerEvent;
+
+  private _levelStatus: levelStatus;
+  private _levelStatusStore: levelStatus;
+
   constructor() {
     super({
-      key: "Hud"
+      key: "Hud",
     });
 
     this._levels = GameData.levels;
   }
 
   create(): void {
-    console.log("create hud");
+    //console.log("create hud");
 
+    this._levelStatus = {
+      score: 0,
+      energy: 100,
+      granade: 10,
+      fire: 100,
+    };
+
+    this._flametimer = this.time.addEvent({
+      delay: 200,
+      callback: () => {
+        this._flameQuantity -= 1;
+        this._flameQuantityText.setText(this._flameQuantity + "");
+        if (this._flameQuantity == 0) {
+          this.setRocket(0);
+          this._flametimer.paused = true;
+        }
+      },
+      loop: true,
+    });
+    this._flametimer.paused = true;
+
+    this._granadeQuantity = 10;
+    this._flameQuantity = 100;
+
+    this._music = this.sound.add("game");
+
+    this.input.mouse.disableContextMenu();
+    this._energy = 100;
+    this._levelCompleteContainer = this.add.container(0, 0).setDepth(100000);
+    this._levelPauseContainer = this.add.container(0, 0).setDepth(100001);
     this._launchers = [true, true, true];
+
+    this._energyhud = this.add.image(20, 42, "energyHud").setOrigin(0, 0.5);
+    this._energybar = this.add.sprite(208, 44, "energyBar").setOrigin(0, 0.5);
+    this._energybarmask = this.add
+      .sprite(208, 44, "energyMask")
+      .setOrigin(0, 0.5);
+    this._energybarmask.visible = false;
+    this._energybar.mask = new Phaser.Display.Masks.BitmapMask(
+      this,
+      this._energybarmask
+    );
 
     let _rocket1: Phaser.GameObjects.Image = this.add
       .sprite(1040, 45, "missile")
@@ -106,10 +161,7 @@ export default class HUD extends Phaser.Scene {
       }
     );
 
-    this._cursor = this.add
-      .image(1040, 45, "block")
-      .setOrigin(0.5)
-      .setScale(2);
+    this._cursor = this.add.image(1040, 45, "block").setOrigin(0.5).setScale(2);
 
     this.tweens.add({
       targets: this._cursor,
@@ -117,27 +169,48 @@ export default class HUD extends Phaser.Scene {
       yoyo: true,
       repeat: -1,
       ease: "Sine.easeInOut",
-      duration: 350
+      duration: 350,
     });
 
     this._gamePlay = <Game>this.scene.get("Game");
     this._currentLevelIndex = 0;
     this._scoreText = this.add
-      .bitmapText(10, 10, "arcade", "0")
-      .setFontSize(30);
+      .bitmapText(40, 35, "arcade", "0")
+      .setFontSize(20);
     this._scoreValue = 0;
     this._hits = 0;
     this._rocketSelector = 0;
     this._levelStarted = false;
     this._levelCompleted = false;
-    this._asteroids = 0;
-    this._asteroidsMax = 0;
-    this._rockets = 0;
 
     this._gamePlay.events.off("updateScore", this.updateScore, this);
     this._updateScore = this._gamePlay.events.on(
       "updateScore",
       this.updateScore,
+      this
+    );
+
+    this._gamePlay.events.off("levelCompleted", this.levelCompleted, this);
+    this._updateScore = this._gamePlay.events.on(
+      "levelCompleted",
+      this.levelCompleted,
+      this
+    );
+
+    this._gamePlay.events.off("addGranade", this.addGranade, this);
+    this._addGranade = this._gamePlay.events.on(
+      "addGranade",
+      this.addGranade,
+      this
+    );
+
+    this._gamePlay.events.off("addFlame", this.addFlame, this);
+    this._addFlame = this._gamePlay.events.on("addFlame", this.addFlame, this);
+
+    this._gamePlay.events.off("addEnergy", this.addEnergy, this);
+    this._addEnergy = this._gamePlay.events.on(
+      "addEnergy",
+      this.addEnergy,
       this
     );
 
@@ -159,6 +232,10 @@ export default class HUD extends Phaser.Scene {
       this.setRocket(2);
     });
 
+    this.input.keyboard.on("keydown-F", (event: Event) => {
+      this.subEnergy([10]);
+    });
+
     this.input.keyboard.on("keydown-O", (event: Event) => {
       this.game.renderer.snapshot((image: any) => {
         let mimeType = "image/png";
@@ -169,7 +246,7 @@ export default class HUD extends Phaser.Scene {
         dlLink.dataset.downloadurl = [
           mimeType,
           dlLink.download,
-          dlLink.href
+          dlLink.href,
         ].join(":");
         document.body.appendChild(dlLink);
         dlLink.click();
@@ -186,42 +263,65 @@ export default class HUD extends Phaser.Scene {
     });
 
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      if (this._levelStarted && !this._levelCompleted) {
-        if (this._rocketSelector == 2) {
-          if (this.isLaucherReady(2)) {
-            this.disableLauncher(2);
-            this._gamePlay.flameThrower();
-          }
-        } else {
-          let _angle = Phaser.Math.Angle.BetweenPoints(
-            this._gamePlay.arm(),
-            this._gamePlay.recalculatePointer(pointer)
-          );
+      if (this._levelStarted && !this._levelCompleted && !this._isPaused) {
+        switch (this._rocketSelector) {
+          case 0:
+            if (this.isLaucherReady(0)) {
+              this.disableLauncher(0);
+              this._flametimer.paused = true;
+              this._gamePlay.launchMissile(pointer);
+            }
+            break;
 
-          if (_angle < -1.3) _angle = -1.3;
-          if (_angle > 0.8) _angle = 0.8;
-
-          this._gamePlay.arm().setRotation(_angle);
-          this._rockets += 1;
-
-          switch (this._rocketSelector) {
-            case 0:
-              if (this.isLaucherReady(0)) {
-                this.disableLauncher(0);
-                this._gamePlay.launchMissile(pointer);
+          case 1:
+            if (this.isLaucherReady(1) && this._granadeQuantity > 0) {
+              this._granadeQuantity -= 1;
+              this._flametimer.paused = true;
+              this._granadeQuantityText.setText(this._granadeQuantity + "");
+              this.disableLauncher(1);
+              this._gamePlay.launchPerforant(pointer);
+              if (this._granadeQuantity == 0) {
+                this.setRocket(0);
               }
-              break;
+            }
+            break;
 
-            case 1:
-              if (this.isLaucherReady(1)) {
-                this.disableLauncher(1);
-                this._gamePlay.launchPerforant(pointer);
+          case 2:
+            if (this._flameQuantity > 0) {
+              //this.disableLauncher(2);
+
+              if (this._gamePlay._player.isFlameThrowerActive()) {
+                this._gamePlay.flameTowerStatus(false);
+                this._flametimer.paused = true;
+              } else {
+                this._gamePlay.flameTowerStatus(true);
+                this._flametimer.paused = false;
               }
-              break;
-          }
+              //this._gamePlay.flameThrower();
+              // this._flametimer.paused = false;
+            } else {
+              this.setRocket(0);
+            }
+            break;
         }
       }
     });
+
+    this._flameQuantityText = this.add
+      .text(1200, 64, "100", {})
+      .setTint(0xffffff)
+      .setOrigin(0.5)
+      .setStroke("#000000", 5)
+      .setFontFamily('"Press Start 2P"')
+      .setFontSize(20);
+
+    this._granadeQuantityText = this.add
+      .text(1120, 64, "10", {})
+      .setTint(0xffffff)
+      .setOrigin(0.5)
+      .setStroke("#000000", 5)
+      .setFontFamily('"Press Start 2P"')
+      .setFontSize(20);
 
     this._wave = this.add
       .text(640, 200, "", {})
@@ -237,25 +337,166 @@ export default class HUD extends Phaser.Scene {
       .setTint(0x00ff00)
       .setOrigin(0.5)
       .setAlpha(0)
-      .setStroke("#000000", 3)
+      .setStroke("#000000", 6)
       .setFontFamily('"Press Start 2P"')
-      .setFontSize(30);
+      .setFontSize(46);
 
     this._completedText = this.add
-      .bitmapText(640, 200, "arcade", "LEVEL COMPLETED")
+      .bitmapText(640, 400, "arcade", "LEVEL COMPLETED")
       .setTint(0x00ff00)
       .setOrigin(0.5)
-      .setAlpha(0)
+      .setAlpha(1)
       .setFontSize(60);
 
     this._completedSummary = this.add
       .bitmapText(640, 400, "carrier", "")
       .setTint(0xffffff)
       .setOrigin(0.5)
-      .setAlpha(0)
+      .setAlpha(1)
       .setFontSize(30);
 
-    this.setUpLevel();
+    this._continue = this.add
+      .bitmapText(440, 600, "carrier", "Continue")
+      .setTint(0xffffff)
+      .setOrigin(0.5)
+      .setAlpha(1)
+      .setFontSize(30)
+      .setInteractive()
+      .on("pointerover", () => {
+        this._continue.setTint(0x00ff00);
+        this.sound.add("charge").play({ volume: 1 });
+      })
+      .on("pointerout", () => {
+        this._continue.setTint(0xffffff);
+      })
+      .on(
+        "pointerdown",
+        (
+          pointer: Phaser.Input.Pointer,
+          localX: number,
+          localY: number,
+          e: Phaser.Types.Input.EventData
+        ) => {
+          this._currentLevelIndex += 1;
+          //console.log("continue", this._currentLevelIndex);
+
+          this.nextLevel(this._currentLevelIndex);
+          e.stopPropagation();
+        }
+      );
+
+    this._retry = this.add
+      .bitmapText(840, 600, "carrier", "Retry")
+      .setTint(0xffffff)
+      .setOrigin(0.5)
+      .setAlpha(1)
+      .setFontSize(30)
+      .setInteractive()
+      .on("pointerover", () => {
+        this._retry.setTint(0xff8200);
+        this.sound.add("charge").play({ volume: 1 });
+      })
+      .on("pointerout", () => {
+        this._retry.setTint(0xffffff);
+      })
+      .on(
+        "pointerdown",
+        (
+          pointer: Phaser.Input.Pointer,
+          localX: number,
+          localY: number,
+          e: Phaser.Types.Input.EventData
+        ) => {
+          //console.log("retry", this._currentLevelIndex);
+          this.setLevelValues(this._levelStatusStore);
+          this.nextLevel(this._currentLevelIndex);
+          e.stopPropagation();
+        }
+      );
+
+    this._levelCompleteContainer
+      .add([
+        this.add.image(0, 0, "black-screen").setAlpha(0.7).setOrigin(0),
+        this._completedText,
+        this._completedSummary,
+        this._retry,
+        this._continue,
+      ])
+      .setAlpha(0);
+
+    this._levelPauseContainer
+      .add([
+        this.add.image(0, 0, "black-screen").setAlpha(0.7).setOrigin(0),
+        this.add
+          .bitmapText(640, 400, "carrier", "PAUSED")
+          .setTint(0xffffff)
+          .setOrigin(0.5)
+          .setAlpha(1)
+          .setFontSize(30),
+      ])
+      .setAlpha(0);
+
+    this.setUpLevel(0);
+  }
+
+  addGranade(params: any) {
+    this.setGranade(this._granadeQuantity + params[0]);
+  }
+  addFlame(params: any) {
+    this.setFlame(this._flameQuantity + params[0]);
+  }
+
+  addEnergy(params: any) {
+    if (this._energy == 100) return;
+    this._energy = this._energy + params[0];
+    if (this._energy > 100) this._energy = 100;
+    this.setEnergyBar(this._energy);
+  }
+
+  subEnergy(params: any) {
+    this._energy = this._energy - params[0];
+    if (this._energy < 0) this._energy = 0;
+    this.setEnergyBar(this._energy);
+  }
+
+  setEnergy(value: number) {
+    this._energy = value;
+    this.setEnergyBar(this._energy);
+  }
+
+  private setEnergyBar(value: number): void {
+    let _val = 208 - (100 - value) * 7;
+    this.tweens.add({
+      targets: this._energybarmask,
+      x: _val,
+      duration: 100,
+      onComplete: () => {
+        if (value <= 0) this.gameOverSequence();
+      },
+    });
+  }
+
+  setGranade(value: number) {
+    this._granadeQuantity = value;
+    this._granadeQuantityText.setText(value + "");
+  }
+
+  setFlame(value: number) {
+    this._flameQuantity = value;
+    this._flameQuantityText.setText(value + "");
+  }
+
+  setScore(value: number) {
+    this._scoreValue = value;
+    this._scoreText.setText(value + "");
+  }
+
+  setLevelValues(_values: levelStatus) {
+    let _levelStatus = JSON.parse(JSON.stringify(_values));
+    this.setFlame(_levelStatus.fire);
+    this.setGranade(_levelStatus.granade);
+    this.setScore(_levelStatus.score);
+    this.setEnergy(_levelStatus.energy);
   }
 
   disableLauncher(index: number): void {
@@ -275,7 +516,7 @@ export default class HUD extends Phaser.Scene {
       callback: () => {
         this.enableLauncher(index);
       },
-      callbackScope: this
+      callbackScope: this,
     });
   }
   enableLauncher(index: number): void {
@@ -286,126 +527,81 @@ export default class HUD extends Phaser.Scene {
   }
 
   setRocket(index: number): void {
-    if (index == this._rocketSelector) return;
-    this.sound.add("charge").play({ volume: 1 });
+    if (index == this._rocketSelector || this._isPaused) return;
 
-    switch (index) {
-      case 0:
-        this._rocketSelector = 0;
-        this._gamePlay.arm().setFrame(0);
-        this._cursor.setX(1040);
-        this._gamePlay.setArmMove(true);
-        this._gamePlay.flameTowerStatus(false);
-        break;
+    if (this._levelStarted && !this._levelCompleted) {
+      switch (index) {
+        case 0:
+          this._rocketSelector = 0;
+          this._gamePlay.getArm().setFrame(0);
+          this._cursor.setX(1040);
+          this._gamePlay.flameTowerStatus(false);
+          this._flametimer.paused = true;
+          break;
 
-      case 1:
-        this._rocketSelector = 1;
-        this._gamePlay.arm().setFrame(1);
-        this._cursor.setX(1120);
-        this._gamePlay.setArmMove(true);
-        this._gamePlay.flameTowerStatus(false);
-        break;
+        case 1:
+          if (this._granadeQuantity == 0) {
+            this.setRocket(0);
+            return;
+          }
+          this._rocketSelector = 1;
+          this._gamePlay.getArm().setFrame(1);
+          this._cursor.setX(1120);
+          this._gamePlay.flameTowerStatus(false);
+          this._flametimer.paused = true;
+          break;
 
-      case 2:
-        this._rocketSelector = 2;
-        this._gamePlay.arm().setFrame(2);
-        this._cursor.setX(1200);
-        this._gamePlay.setArmMove(false);
-        this._gamePlay.arm().setRotation(0);
-        this._gamePlay.flameTowerStatus(true);
+        case 2:
+          if (this._flameQuantity == 0) {
+            this.setRocket(0);
+            return;
+          }
+          this._rocketSelector = 2;
+          this._gamePlay.getArm().setFrame(2);
+          this._cursor.setX(1200);
 
-        break;
+          /* this._gamePlay.flameTowerStatus(true);
+          this._flametimer.paused = false;
+          */
+          break;
+      }
+      this.sound.add("charge").play({ volume: 1 });
     }
   }
 
   update(time: number, delta: number) {
-    if (this._levelStarted) {
-      switch (this._currentLevel.type) {
-        case 0: //destry asteroids
-          //console.log(this._hits);
-          if (this._hits == this._asteroidsMax) {
-            this._levelCompleted = true;
-            this._levelStarted = false;
-            this._currentLevelIndex += 1;
-            this.levelCompleted();
-          } else {
-            if (
-              this._spawn < this.time.now &&
-              !this._levelCompleted &&
-              this._asteroids <= this._asteroidsMax
-            ) {
-              this._spawn =
-                this.time.now +
-                (Phaser.Math.RND.integerInRange(
-                  this._spawnMin,
-                  this._spawnMax
-                ) -
-                  100);
-
-              this._asteroids += 1;
-              //console.log(this._asteroids, this._asteroidsMax);
-              if (this._asteroids <= this._asteroidsMax) {
-                /*this._gamePlay.createAsteroid({
-                  speed: Phaser.Math.RND.integerInRange(
-                    this._speedMin,
-                    this._speedMax
-                  )
-                });*/
-              }
-            }
-          }
-
-          break;
-
-        case 1: //resist time
-          break;
+    if (this._levelStarted && !this._levelCompleted) {
+      if (
+        this._gamePlay.cameras.main.scrollX + 600 >
+        this._gamePlay.cameras.main.getBounds().width - 700
+      ) {
+        this.levelCompleted();
       }
     }
   }
 
-  private setUpLevel() {
-    this._levelStarted = true;
-    console.log("setUpLevel", this._currentLevelIndex);
-    this._currentLevel = this._levels[this._currentLevelIndex];
-    this._hits = 0;
-    this._asteroids = 0;
+  private setUpLevel(_level: number) {
+    this._levelStatus = {
+      score: this._scoreValue,
+      energy: this._energy,
+      granade: this._granadeQuantity,
+      fire: this._flameQuantity,
+    };
+    this._levelStatusStore = JSON.parse(JSON.stringify(this._levelStatus));
+    this._currentLevel = this._levels[_level];
+    this._gamePlay.setupLevel(this._currentLevel);
     this._levelCompleted = false;
-    this._rockets = 0;
-    this._spawn = this.time.now;
-
+    this._levelStarted = false;
+    this._hits = 0;
     this._wave.setText(this._currentLevel.level);
     this._waveTitle.setText(this._currentLevel.title);
 
-    switch (this._currentLevel.type) {
-      case 0: //destroy asteroids
-        if (
-          this._currentLevel.asteroids != undefined &&
-          this._currentLevel.asteroids.spawn != undefined
-        ) {
-          this._spawnMin = this._currentLevel.asteroids.spawn.min;
-          this._spawnMax = this._currentLevel.asteroids.spawn.max;
-        }
-
-        if (
-          this._currentLevel.asteroids != undefined &&
-          this._currentLevel.asteroids.speed != undefined
-        ) {
-          this._speedMin = this._currentLevel.asteroids.speed.min;
-          this._speedMax = this._currentLevel.asteroids.speed.max;
-        }
-
-        if (
-          this._currentLevel.asteroids != undefined &&
-          this._currentLevel.asteroids.quantity != undefined
-        ) {
-          this._asteroidsMax = this._currentLevel.asteroids.quantity;
-        }
-
-        break;
-
-      case 1: //resist time
-        break;
-    }
+    this._music.stop();
+    this._music = this.sound.add("game");
+    this._music.play(undefined, {
+      loop: true,
+      volume: 0.1,
+    });
 
     this._gamePlay.tweens.add({
       targets: this._wave,
@@ -424,31 +620,45 @@ export default class HUD extends Phaser.Scene {
               duration: 500,
               completeDelay: 1000,
               onComplete: () => {
-                console.log("start level");
+                //console.log("start level");
                 this._levelStarted = true;
                 this._gamePlay.startGame();
-              }
+              },
             });
-          }
+          },
         });
-      }
+      },
     });
   }
 
   levelCompleted() {
-    console.log("levelCompleted");
+    console.log("levelCompleted", this._currentLevelIndex);
+
+    this._gamePlay.stopWalk();
+    this._gamePlay.setArmMove(false);
+    this.setRocket(0);
+    this._levelCompleted = true;
+    this._levelStarted = false;
+
+    this._music.stop();
+    this._music = this.sound.add("endlevel");
+    this._music.play(undefined, {
+      loop: false,
+      volume: 0.1,
+    });
+    this.sound.add("neutralizzati", { volume: 1 }).play();
     this._completedText.setAlpha(0);
-    this._completedSummary
+    /*this._completedSummary
       .setText(
-        "Missile launched: " +
-          this._rockets +
-          "\n\nAsteroids hit: " +
+        "text: " +
+          "\n\nEnemy hits: " +
           this._hits +
-          "\n\nHit ratio: " +
-          ((100 * this._hits) / this._rockets).toFixed(1) +
+          "\n\nHits ratio: " +
+          (100 * this._hits).toFixed(1) +
           "%"
       )
-      .setAlpha(0);
+      .setAlpha(0);*/
+    this._levelCompleteContainer.setAlpha(1);
 
     this._gamePlay.tweens.add({
       targets: this._completedText,
@@ -459,35 +669,58 @@ export default class HUD extends Phaser.Scene {
           targets: this._completedSummary,
           alpha: 1,
           completeDelay: 3000,
-          onComplete: () => {
-            this._gamePlay.tweens.add({
-              targets: [this._completedText, this._completedSummary],
-              alpha: 0,
-              duration: 500,
-              onComplete: () => {
-                this.setUpLevel();
-              }
-            });
-          }
+          onComplete: () => {},
         });
-      }
+      },
+    });
+  }
+
+  nextLevel(_level: number) {
+    //console.log("next level", _level);
+    this.setUpLevel(_level);
+    this._gamePlay.tweens.add({
+      targets: [this._levelCompleteContainer],
+      alpha: 0,
+      duration: 500,
+      onComplete: () => {},
     });
   }
 
   private pauseGame() {
+    this._levelPauseContainer.setAlpha(1);
+    // this._gamePlay.pause();
+    this._music.pause();
     this.game.scene.pause("Game");
     this._isPaused = true;
   }
   private resumeGame() {
+    this._levelPauseContainer.setAlpha(0);
     this.game.scene.resume("Game");
+    this._music.resume();
+    // this._gamePlay.resume();
     this._isPaused = false;
   }
 
   private updateScore(parameters: Array<any>): void {
-    console.log("updateScore");
+    //console.log("updateScore");
     this._hits += 1;
     this._scoreValue += parameters[0];
     this._scoreText.setText(this._scoreValue + "");
     this.registry.set("score", this._scoreValue);
+  }
+
+  gameOverSequence() {
+    console.log("game over");
+    this.gameOver();
+  }
+
+  gameOver() {
+    this._music.stop();
+    this.scene.stop("Hud");
+    this.scene.stop("Game");
+    this.scene.start("GameOver");
+    this.scene.start("ScoreInput");
+    this.scene.bringToTop("GameOver");
+    this.scene.bringToTop("ScoreInput");
   }
 }

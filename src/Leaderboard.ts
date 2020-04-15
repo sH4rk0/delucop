@@ -9,7 +9,7 @@ export default class Leaderboard {
     storageBucket: "delucop.appspot.com",
     messagingSenderId: "946828017766",
     appId: "1:946828017766:web:7207d795728d4690f0eda7",
-    measurementId: "G-0YSEBVKFM6"
+    measurementId: "G-0YSEBVKFM6",
   };
   private fireBaseApp: firebase.app.App;
   private fireBaseDb: firebase.database.Database;
@@ -35,10 +35,10 @@ export default class Leaderboard {
   }
 
   getData() {
-    this.scores.on("value", data => {
+    this.scores.on("value", (data) => {
       //console.log(data.val());
       this.allscores = [];
-      Object.entries(data.val()).forEach(entry => {
+      Object.entries(data.val()).forEach((entry) => {
         let key = entry[0];
         let value = entry[1];
         this.allscores.push(value);
@@ -64,7 +64,7 @@ export default class Leaderboard {
         }
       }
 
-      console.log(this.highscores);
+      // console.log(this.highscores);
     });
   }
 }

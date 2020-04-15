@@ -1,6 +1,11 @@
 import Game from "../scenes/Game";
 export default class Explosion extends Phaser.GameObjects.Sprite {
-  private _config: any;
+  private _config: {
+    scene: Game;
+    x: number;
+    y: number;
+    options: { type: number };
+  };
   private _animation: any = [
     {
       key: "blood",
@@ -9,7 +14,7 @@ export default class Explosion extends Phaser.GameObjects.Sprite {
       scale: 2,
       sound: "",
       offsetY: 0,
-      offsetX: 0
+      offsetX: 0,
     },
     {
       key: "explosion",
@@ -41,13 +46,13 @@ export default class Explosion extends Phaser.GameObjects.Sprite {
         24,
         25,
         26,
-        27
+        27,
       ],
       frameRate: 20,
       scale: 2,
       sound: "",
       offsetY: 40,
-      offsetX: 0
+      offsetX: 0,
     },
     ,
     {
@@ -74,14 +79,14 @@ export default class Explosion extends Phaser.GameObjects.Sprite {
         3,
         2,
         1,
-        0
+        0,
       ],
       frameRate: 10,
-      scale: 3,
+      scale: 2,
       sound: "",
-      offsetY: 30,
-      offsetX: 0
-    }
+      offsetY: 25,
+      offsetX: 0,
+    },
   ];
   constructor(params: any) {
     super(params.scene, params.x, params.y, params.key);
@@ -102,10 +107,10 @@ export default class Explosion extends Phaser.GameObjects.Sprite {
     var animConfig = {
       key: "explode" + this._config.options.type,
       frames: _scene.anims.generateFrameNumbers(_options.key, {
-        frames: _options.frames
+        frames: _options.frames,
       }),
       frameRate: _options.frameRate,
-      repeat: 0
+      repeat: 0,
     };
 
     _scene.anims.create(animConfig);
@@ -121,7 +126,14 @@ export default class Explosion extends Phaser.GameObjects.Sprite {
     this.on(
       "animationcomplete",
       () => {
-        this.destroy();
+        this._config.scene.tweens.add({
+          targets: this,
+          alpha: 0,
+          duration: 300,
+          onComplete: () => {
+            this.destroy();
+          },
+        });
       },
       this
     );

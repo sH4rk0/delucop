@@ -1,4 +1,4 @@
-export default class DeluCop extends Phaser.Physics.Arcade.Sprite {
+export default class DeluCop extends Phaser.GameObjects.Sprite {
   private _config: any;
   private _walk1: Phaser.Sound.BaseSound;
   private _walk2: Phaser.Sound.BaseSound;
@@ -17,19 +17,16 @@ export default class DeluCop extends Phaser.Physics.Arcade.Sprite {
     this._walking = false;
     this._step1 = false;
     this._step2 = false;
-    this._config.scene.physics.world.enable(this);
-    this.setOrigin(0, 1)
-      .setFrame(9)
-      .setDepth(13)
-      .setScale(0.5);
+
+    this.setOrigin(0, 1).setFrame(9).setDepth(13);
 
     var animConfig = {
       key: "walk",
       frames: this._config.scene.anims.generateFrameNumbers("robocop", {
-        frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
       }),
       frameRate: 7,
-      repeat: -1
+      repeat: -1,
     };
     this._config.scene.anims.create(animConfig);
     this._config.scene.add.existing(this);
@@ -40,8 +37,18 @@ export default class DeluCop extends Phaser.Physics.Arcade.Sprite {
 
   startWalk() {
     this.play("walk");
-    this.setVelocityX(50);
+
     this._walking = true;
+  }
+
+  stopWalk() {
+    this.anims.stop();
+    this.setFrame(9);
+    this._walking = false;
+  }
+
+  isWalking(): boolean {
+    return this._walking;
   }
 
   update(time: number, delta: number) {
@@ -49,18 +56,20 @@ export default class DeluCop extends Phaser.Physics.Arcade.Sprite {
       switch (this.anims.currentFrame.index) {
         case 4:
           if (this._step1) return;
+
           this._walk1.play(undefined, {
-            volume: 0.3,
-            rate: 1
+            volume: 0.4,
+            rate: 1,
           });
           this._step1 = true;
           this._step2 = false;
           break;
         case 9:
           if (this._step2) return;
+
           this._walk2.play(undefined, {
-            volume: 0.3,
-            rate: 1
+            volume: 0.4,
+            rate: 1,
           });
           this._step1 = false;
           this._step2 = true;
